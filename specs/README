@@ -1,0 +1,53 @@
+
+
+This is our attempt to write specs down as we discover/understand them incase
+Logitech never releases specs.
+
+INTRO
+
+There are two general underlying protocols used... one by the non-z-wave
+remotes, and one by z-wave remotes.
+
+In addition, one of two transports is used: HID or LAN.
+
+Finally, all remotes use USB as their physical medium.
+
+These are coupled into a few combinations:
+
+  non-zwave -> HID               -> USB
+  zwave PIC -> faux UDP-over-HID -> USB
+  zwave ARM -> TCP               -> USB
+
+For 880 and below (plus the Monster AV-100), they all use USB and the
+non-z-wave protocol.
+
+The 890, 890pro, 895, and Monster AVL-300 all use z-wave over HID.
+
+The 1000, 1000i and later use z-wave over LAN.
+
+The individual protocols are documented in the following files:
+
+  protocol.txt - pre-z-wave remote (880 and earlier) documentation
+  protocol_z.txt - z-wave remote documentation
+
+
+TOOLS
+
+If you are attempting to develop new features, here are some tools you may be
+intersted in:
+
+  Open Source PIC Assember and Simulator
+  http://www.gnupic.org/
+
+  MPLAB Development Environment for MicroChips PIC and dsPIC chips:
+  http://www.microchip.com/stellent/idcplg?IdcService=SS_GET_PAGE&nodeId=1406&dDocName=en019469&part=SW007002
+
+  Modified PIC18 and PIC16 disassembers:
+  http://www.dtvcontrol.com/harmony/picdis18.zip
+   (patched by Kevin ZTimmerman, based on version here:
+    http://www.etc.ugal.ro/cchiculita/software/picdisasm.htm)
+
+
+
+# for vim to text-wrap
+vim:textwidth=78:

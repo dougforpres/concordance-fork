@@ -1,0 +1,272 @@
+0.23
+Released: 08/28/10
+s-t-concordance@wwwdotorg.org:
+- libconcord: Add windows support for {prep,finish}_config
+
+phil@ipom.com:
+- libconcord: Properly bump so-version
+
+
+0.22
+Released: 08/01/10
+phil@ipom.com
+- concordance: Update README to point to the supported models page rather
+  than list specifics about support (thanks to wolfgang@rohdewald.de)
+- libconcord: Update INSTALL.linux to explain that by default udev files don't
+  go into /etc. Fixes bug 2788066.
+- libconcord: Fix minor memory leak.
+- specs: ZWave protocol specs, with special thanks to Ian Flanigan
+  <flan@lean.to> and "Phrozen" for their invaluable work and contributions to
+  making this possible.
+- libconcord: Better error reporting for libusb
+- libconcord: Get the code for ZWave HID-based reads/writes working,
+  as well as get-identity, get-time and set-time working (89x series).
+- libconcord: Error checking added to ZWave code.
+
+s-t-concordance@wwwdotorg.org:
+- libconcord: Fix error reporting in python bindings
+- Harmony 700 support. Fixes bug 3011845.
+
+
+0.21
+Released: 03/08/09
+phil@ipom.com
+- concordance: After resetting the remote, wait for it to come back before
+  reporting success
+- concordance: After resetting the remote, set the time since some remotes don't
+  seem to hold time well across reboots
+- libconcord: Read RESPONSE_DONE after setting the time so that the next command
+  doesn't fail
+- concordance: Add --no-reset flag to prevent resetting the remote.
+- libconcord: Add lots of information to the perl bindings README
+- libconcord: Product name cleanups for Harman Kardon remotes from Pete Wenzel
+  <pmwenzel@yahoo.com>
+- libconcord: Make configure bail out if it can't find libusb. Fixes bug
+  2050170
+- concordance: Fixing spacing issue on "Resetting Remote" line
+- concordance: Fix inconsistencies in stderr/stdout error reporting
+- consnoop: Code cleanups, command options parsing, debug/verbose modes,
+  extra flash write output
+- libconcord: Thanks to s-t-concordance@wwwdotorg.org finding the bad byte, we
+  now can do firmware upgrades on 5xx remotes
+- libconcord: Update perl bindings for IR API change, update test driver for
+  change and fix segfault bug
+- concordance: Add --force flag to override filetype mismatch fatal error.
+- libconcord: Add support to the install system for generating and installing
+  udev/consolekit/policykit config files based on work from
+  silfreed@silfreed.net
+- libconcord: Update INSTALL.Linux to cover udev/consolekit/policykit
+  installation
+- concordance: Change help to default people to automatic mode
+
+s-t-concordance@wwwdotorg.org:
+- libconcord: README for python bindings
+- concordance: Make unistd.h change work for Windows
+- Fix post_*() to return error codes on failure
+- libconcord: Add tracing to python bindings and update for IR API changes
+- Add callback support to andreas new IR API
+- consnoop: Fix length map in data decoding
+- libconcord: initialize all arays containing protocol packets
+- libconcord: python bindings: Prototype lc_strerr to avoid either/both incorrect
+  exception text or crashes on 64-bit machines.
+- libconcord: Fix a few INSTALL.linux typos
+
+andreas.schulz@nord-com.net:
+- libconcord: Brand new API for IR learning. More flexible and extensible.
+- libconcord: Add support for leanring multiple IR keys with one IR file from
+  the website
+- concordance: Port to new IR learning API
+- concordance: Report mismatch between requested mode and file mode
+
+silfreed@silfreed.net:
+- libconcord: Makefile.am udev targets should use sysconfigdir
+
+
+0.20
+Released: 04/13/08
+phil@ipom.com
+- split into library and CLI
+- rename from harmony to concordance/libconcord (bug#1892367)
+- libconcord: formalize API
+- libconcord: document API
+- convert to autoconf/automake/libtool
+- add firmware update to library and cli
+- libconcord: code cleanup
+- compilation fixes for Mac
+- libconcord: kext for Mac
+- concordance: ignore return value from reset_remote() since it doesn't always
+  return successfully from all remotes (thanks to linux@zachcarter.com)
+- fix the location and name of the license file (thanks to
+  s-t-concordance@wwwdotorg.org)
+- Add CodingStyle and SubmittingPatches documentation
+- concordance: Update auto-mode to understand firmware updates
+- concordance: Gracefully handle the remote having an invalid config
+  so that we can fix it
+- libconcord: Implement new debug() macro and unify the code to use that
+  instead of tons of #ifdefs
+- libconcord: Re-order functions in libconcord.cpp to make more sense
+- libconcord: Replace all read_*_from_file() APIs with Andreas'
+  _read_from_file() function, renaming it read_file()
+- Restructure code-flow in concordance to read a file very early
+  with read_file(), and then pass around the data as needed. Both for
+  cleanup and to prep for an libconcord API to detect filetype better
+- libconcord: Submit HID data without an initial 0-byte that a
+  Windows HID stack would expect. In the event we're using WinHID,
+  our WinHID code will add the extra 0-byte, but the rest of the code
+  is no longer encumbered with it.
+- libconcord: Perl bindings
+- libconcord: Add add_cookiekeyval option to Web API to work around
+  connectivity problems with arch 9 remotes where a value is left out
+  of the cookie in the XML file. (bug#1910362)
+
+s-t-concordance@wwwdotorg.org:
+- remove usage of ** where * is sufficient
+- typedef our callback type
+- libconcord: API/type cleanups
+- libconcord: implement the firmware checksum algorithm
+- libconcord: fix includes for gcc 4.3.0
+- fix protocol.txt c&p error
+- Add "size" to all APIs dealing with byte-arrays
+- Remove dependence on windows ODBC libraries in win project files
+- Implement new identify_file() API to intelligently determine filetype
+  based on contents instead of filename
+- Fix Windows progress bar output
+- libconcord: Python bindings
+
+simon@budig.de
+- libconcord: Fix sector calculation in EraseFlash() (bug#1910326)
+
+marco_bleich@gmx.do:
+- project files, def file for DLL
+- update Windows project files for library/cli split
+
+andreas.r.schulz@gmx.de:
+- libconcord: Read the RESPONSE_DONE after IR learning (bug#1898492)
+- libconcord: abstract reading files into _read_from_file()
+- libconcord: Fix handle_ir_response*() bug introduced by USB initial-0 buffer
+  changes
+
+
+0.13
+Released: 02/29/08
+phil@ipom.com
+- Add new --print-remote-info mode, and don't print remote info otherwise
+- Man page updates for new --print-remote-info mode
+- Significant output cleanup for ease-of-use
+- Fix double-free bug (bug#1880923)
+- Fix various segfaults through better error checking (bug#1875154)
+- Update range of PIDs we recognize as z-wave HID remotes (bug#1883295)
+  Thanks to Greg Vogel for the report)
+- dos2unix a few stragler files left with DOS newlines
+- Significant restructure of how output works revolving mostly around
+  a new callback system in the CRemote class for reporting progress to the
+  caller. This includes more consistent and accurate progress output for all
+  stages.
+- More efficient and cleaner support for erasing flash
+- Windows compile fixes (thanks to Marco Bleich)
+- Various code cleanups
+- Fix bug where return from remote was checked properly
+- Don't try to get identity after a reset in -r (bug#1897605)
+- Disable certain deprecated warnings in Windows (will be fixed
+  properly in future releases). Thanks to marco_bleich@gmx.de. (bug#1898552)
+- Makefile: Don't try to compile header files
+- Better handling of default filenames
+
+marco_bleich@gmx.de:
+- Add a suitable basename() replacement for Windows users (bug#1884258)
+- Windows VC++/VS project files
+- Windows install docs
+
+
+0.12
+Released: 01/11/08
+phil@ipom.com
+- Man update updates, and add manpage to Makefile
+- Match filenames regardless of directory when in "auto" mode
+- README updates based on feedback from Ian Hall
+- INSTALL.Linux clarifications (thanks to Brett Presnell)
+- Improve error reporting 
+
+
+0.11
+Released: 08/31/07
+cseutter@sbcglobal.net
+- Add man page
+
+phil@ipom.com
+- Fix typo in help for -s (thanks cseutter@sbcglobal.net)
+- Fix formatting of version numbers we send to harmony website (fixes bug
+  #1769797 where the harmony website would give "Unable to load Memory
+  Model ..." errors after using our software
+- Significant documentation updates (README and INSTALL.Linux)
+- Convert xml_headers.h to unix newlines to match the rest of the source
+
+
+0.10
+Released: 08/07/07
+phil@ipom.com
+- Add --no-web option
+- Cleanup output, web-related in particular
+- refactor code so output its printed in the same general area of code
+- cleanup remote-discovery output
+- fix compiler error in linux from previous windows changes
+- Update Makefile for new 890/1000 support from Kevin
+- Add invalidation-of-flash before erase-of-flash. Required for consistent
+  results - idea from Kevin
+- Cleanup discovery code to only match devices we care about
+- Improve error reporting around USB discovery when using libusb
+- Improve error reporting around USB read/write when using libusb
+- Attempt to detach kernel driver, if in Linux
+- Add #ifndef's around harmony.h
+- Documentation updates
+- Give snoop it's own Makefile
+
+sourceforge2007@pcmx.net:
+- Refactor classes in preperation for 890/1000 support
+- Limited 890/1000 support
+- Improve 360, 520, 500, and 745 support
+- Add -k and -K for get and set time
+- Fix virtual deconstructors to make g++ not warn
+
+
+0.9
+Released: 07/20/07
+phil@ipom.com:
+- More re-factoring
+- UI re-write
+- Much more verbose --help message
+
+sourceforge2007@pcmx.net:
+- Bugfix for not recording filenames passed in
+- Windows getopt compatibility
+- Added a small program called 'snoop' which takes SnoopyPro XML output
+  and converts it to a text file with interpreted Harmony commands
+
+
+0.8
+Released: 07/19/07
+phil@ipom.com:
+- Add TODO, ideas for UI redesign, and more
+- Finished factoring out harmony.cpp
+- Fixed up the help output
+- Added a few error messages
+- Cleaned up compiler warnings
+
+
+0.7
+Released: 07/18/07
+phil@ipom.com:
+- start to factor out the very large main loop
+- add a --help option
+- move to getopt
+- add some more documentation
+- Makefile fixes
+- general readability improvements
+
+
+0.6
+Released: 07/17/07
+- Original public version
+
+
+vim:textwidth=78:
