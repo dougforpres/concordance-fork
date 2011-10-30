@@ -21,59 +21,34 @@
  * (C) Copyright Phil Dibowitz 2007
  */
 
-#include "../lc_internal.h"
-#include "../libconcord.h"
-
-#ifdef LIBUSB
-
-#include "../hid.h"
-#ifdef WIN32
-#include "win/usb.h"
-#else
-#include <usb.h>
-#endif
-#include <errno.h>
-
-/*
- * Harmonies either fall under logitech's VendorID (0x046d), and logitech's
- * productID range for Harmonies (0xc110 - 0xc14f)...
- *
- * OR, they fall under 0x400/0xc359 (older 7-series, all 6-series).
- */
-#define LOGITECH_VID 0x046D
-#define LOGITECH_MIN_PID 0xc110
-#define LOGITECH_MAX_PID 0xc14f
-#define NATIONAL_VID 0x0400
-#define NATIONAL_PID 0xc359
-
-static usb_dev_handle *h_hid = NULL;
-static unsigned int irl;
-static unsigned int orl;
-static int ep_read = -1;
-static int ep_write = -1;
+#include "libusbhid.h"
 
 int InitUSB()
 {
-	usb_init();
+	libusb_init(&context);
+    libusb_set_debug(context, 3);
+    
 	return 0;
 }
 
 void ShutdownUSB()
 {
 	if (h_hid) {
-		usb_release_interface(h_hid,0);
+		libusb_release_interface(h_hid,0);
 	}
+    
+    libusb_exit(context);
 }
 
-void check_ep(usb_endpoint_descriptor &ued)
+void check_ep(const libusb_endpoint_descriptor &ued)
 {
 	debug("address %02X attrib %02X max_length %i",
 		ued.bEndpointAddress, ued.bmAttributes,
 		ued.wMaxPacketSize);
 
-	if ((ued.bmAttributes & USB_ENDPOINT_TYPE_MASK) ==
-	    USB_ENDPOINT_TYPE_INTERRUPT) {
-		if (ued.bEndpointAddress & USB_ENDPOINT_DIR_MASK) {
+	if ((ued.bmAttributes & LIBUSB_TRANSFER_TYPE_MASK) ==
+	    LIBUSB_TRANSFER_TYPE_INTERRUPT) {
+		if (ued.bEndpointAddress & LIBUSB_ENDPOINT_DIR_MASK) {
 			if (ep_read == -1) {
 				ep_read = ued.bEndpointAddress;
 				// hack! todo: get from HID report descriptor
@@ -89,16 +64,21 @@ void check_ep(usb_endpoint_descriptor &ued)
 	}
 }
 
-bool is_harmony(struct usb_device *h_dev)
+bool is_harmony(struct libusb_device *h_dev)
 {
 	/* IF vendor == logitech AND product is in range of harmony
 	 *   OR vendor == National Semiconductor and product is harmony
 	 */
-	if ((h_dev->descriptor.idVendor == LOGITECH_VID
-	      && (h_dev->descriptor.idProduct >= LOGITECH_MIN_PID
-	          && h_dev->descriptor.idProduct <= LOGITECH_MAX_PID))
-	    || (h_dev->descriptor.idVendor == NATIONAL_VID
-	          && h_dev->descriptor.idProduct == NATIONAL_PID)) {
+    libusb_device_descriptor desc;
+    
+    libusb_get_device_descriptor(h_dev, &desc);
+    // TODO - Deal with errors!
+    
+	if ((desc.idVendor == LOGITECH_VID
+	      && (desc.idProduct >= LOGITECH_MIN_PID
+	          && desc.idProduct <= LOGITECH_MAX_PID))
+	    || (desc.idVendor == NATIONAL_VID
+	          && desc.idProduct == NATIONAL_PID)) {
 		return true;
 	}
 	return false;
@@ -110,24 +90,26 @@ bool is_harmony(struct usb_device *h_dev)
  */
 int FindRemote(THIDINFO &hid_info)
 {
+    libusb_device **devices;
+    
+    ssize_t num_devices = libusb_get_device_list(context, &devices);
 
-	usb_find_busses();
-	usb_find_devices();
-
-	struct usb_device *h_dev = NULL;
+	libusb_device *h_dev;
 	bool found = false;
-	for (usb_bus *bus = usb_busses; bus && !found; bus = bus->next) {
-		for (h_dev = bus->devices; h_dev; h_dev = h_dev->next) {
-			if (is_harmony(h_dev)) {
-				found = true;
-				break;
-			}
+    
+	for (int i = 0; i < num_devices && !found; i++) {
+        h_dev = (libusb_device *)(devices[i]);
+        
+        if (is_harmony(h_dev)) {
+			found = true;
+			break;
 		}
 	}
 
 	if (h_dev) {
-		h_hid = usb_open(h_dev);
+		libusb_open(h_dev, &h_hid);
 	}
+    
 	if (!h_hid) {
 		debug("Failed to establish communication with remote: %s",
 			usb_strerror());
@@ -146,32 +128,43 @@ int FindRemote(THIDINFO &hid_info)
 #endif
 
 	int err;
-	if ((err = usb_set_configuration(h_hid, 1))) {
+	if ((err = libusb_set_configuration(h_hid, 1))) {
 		debug("Failed to set device configuration: %d (%s)", err,
 			usb_strerror());
 		return err;
 	}
 
-	if ((err=usb_claim_interface(h_hid, 0))) {
+	if ((err = libusb_claim_interface(h_hid, 0))) {
 		debug("Failed to claim interface: %d (%s)", err,
 			usb_strerror());
 		return err;
 	}
 
-	unsigned char maxconf = h_dev->descriptor.bNumConfigurations;
-	for (unsigned char j = 0; j < maxconf; ++j) {
-		usb_config_descriptor &uc = h_dev->config[j];
-		unsigned char maxint = uc.bNumInterfaces;
-		for (unsigned char k = 0; k < maxint; ++k) {
-			usb_interface &ui = uc.interface[k];
-			unsigned char maxalt = ui.num_altsetting;
-			for (unsigned char l = 0; l < maxalt; ++l) {
-				usb_interface_descriptor &uid =
-					ui.altsetting[l];
+    libusb_device_descriptor desc;
+    libusb_config_descriptor *uc = NULL;
+    
+    libusb_get_device_descriptor(h_dev, &desc);
+    // TODO - Deal with errors!
 
-					debug("bNumEndpoints %i",
-						uid.bNumEndpoints);
+	unsigned char maxconf = desc.bNumConfigurations;
+    
+	for (unsigned char j = 0; j < maxconf; ++j) {
+		libusb_get_config_descriptor(h_dev, j, &uc);
+        
+		unsigned char maxint = uc->bNumInterfaces;
+        
+		for (unsigned char k = 0; k < maxint; ++k) {
+			const libusb_interface &ui = uc->interface[k];
+            
+			unsigned char maxalt = ui.num_altsetting;
+            
+			for (unsigned char l = 0; l < maxalt; ++l) {
+				const libusb_interface_descriptor &uid = ui.altsetting[l];
+
+				debug("bNumEndpoints %i", uid.bNumEndpoints);
+                
 				unsigned char maxep = uid.bNumEndpoints;
+                
 				for (unsigned char n = 0; n < maxep; ++n) {
 					check_ep(uid.endpoint[n]);
 				}
@@ -183,15 +176,15 @@ int FindRemote(THIDINFO &hid_info)
 
 	// Fill in hid_info
 
-	char s[128];
-	usb_get_string_simple(h_hid,h_dev->descriptor.iManufacturer,s,sizeof(s));
-	hid_info.mfg = s;
-	usb_get_string_simple(h_hid,h_dev->descriptor.iProduct,s,sizeof(s));
-	hid_info.prod = s;
+	unsigned char s[128];
+	libusb_get_string_descriptor_ascii(h_hid, desc.iManufacturer, s, sizeof(s));
+	hid_info.mfg = (char *)s;
+	libusb_get_string_descriptor_ascii(h_hid, desc.iProduct, s, sizeof(s));
+	hid_info.prod = (char *)s;
 
-	hid_info.vid = h_dev->descriptor.idVendor;
-	hid_info.pid = h_dev->descriptor.idProduct;
-	hid_info.ver = h_dev->descriptor.bcdDevice;
+	hid_info.vid = desc.idVendor;
+	hid_info.pid = desc.idProduct;
+	hid_info.ver = desc.bcdDevice;
 
 	hid_info.irl = irl;
 	hid_info.orl = orl;
@@ -208,9 +201,9 @@ int HID_WriteReport(const uint8_t *data)
 	 * skip the first byte here. Now, we do not assume this, we send
 	 * wholesale here, and add the 0 in the windows code.
 	 */
-	const int err=usb_interrupt_write(h_hid, ep_write,
-		reinterpret_cast<char *>(const_cast<uint8_t*>(data)),
-		orl, 500);
+    int written = 0;
+    
+	const int err = libusb_bulk_transfer(h_hid, ep_write, (unsigned char *)data, orl, &written, 500);
 
 	if (err < 0) {
 		debug("Failed to write to device: %d (%s)", err,
@@ -224,8 +217,9 @@ int HID_WriteReport(const uint8_t *data)
 int HID_ReadReport(uint8_t *data, unsigned int timeout)
 {
 	/* Note default timeout is set to 500 in hid.h */
-	const int err = usb_interrupt_read(h_hid, ep_read,
-		reinterpret_cast<char *>(data), irl, timeout);
+    int read = 0;
+    
+	const int err = libusb_bulk_transfer(h_hid, ep_read, (unsigned char *)data, irl, &read, timeout);
 
 	if (err == -ETIMEDOUT) {
 		debug("Timeout on interrupt read from device");
@@ -241,4 +235,3 @@ int HID_ReadReport(uint8_t *data, unsigned int timeout)
 	return 0;
 }
 
-#endif

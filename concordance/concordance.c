@@ -23,7 +23,7 @@
 
 /* Platform-agnostic includes */
 #define _SVID_SOURCE
-#include <libconcord.h>
+#include "libconcord.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
